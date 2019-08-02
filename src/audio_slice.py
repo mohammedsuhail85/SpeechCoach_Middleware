@@ -3,13 +3,16 @@ import glob
 from pydub import AudioSegment
 import requests
 
+FILE_PATH = "/home/suhail/Desktop/SpeechEmotionAnalyzer/temp/"
+
 
 def get_emotion(file_path):
     try:
         # sound = AudioSegment.from_file_using_temporary_files
         # ("/home/suhail/Desktop/SpeechEmotionAnalyzer/test_vid.wav")
+        print("Processing Emotion Analyzer")
         print(file_path)
-        sound = AudioSegment.from_file_using_temporary_files(file_path)
+        sound = AudioSegment.from_file(file_path)
 
         duration = sound.duration_seconds
         slicing_time = 4
@@ -25,7 +28,7 @@ def get_emotion(file_path):
             start = x*slicing_time*1000
             end = (x+1)*slicing_time*1000
             segment = sound[start:end]
-            audio_file_name = "/home/suhail/Desktop/SpeechEmotionAnalyzer/temp/seg"+str(x)+".wav"
+            audio_file_name = FILE_PATH + "seg"+str(x)+".wav"
             list_audio.append(audio_file_name)
             segment.export(audio_file_name, format="wav")
 
@@ -43,11 +46,14 @@ def get_emotion(file_path):
 
             response = requests.post(url_emotion, files=multipart)
             if response.status_code == 200:
-                response_list.append(response.content)
+                response_list.append(response.json())
 
         print("Request completed")
-        for x in response_list:
-            print(x)
+        # for x in response_list:
+        #     print(x)
+
+        print(response_list)
+        return response_list
 
     except Exception as ex:
         ex.with_traceback()

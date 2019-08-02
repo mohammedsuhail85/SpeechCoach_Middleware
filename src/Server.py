@@ -7,16 +7,14 @@ import requests
 
 from werkzeug.exceptions import BadRequestKeyError
 
+import audio_slice
 
-UPLOAD_FOLDER = '/home/suhail/Desktop/SpeechEmotionAnalyzer/uploaded_vid'
+UPLOAD_FOLDER = '/home/suhail/Desktop/SpeechCoach_Middleware/uploaded_vid'
 ALLOWED_EXTENTIONS = ['mp4']
 
 app = Flask(__name__)
 api = Api(app)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-video_path = "uploaded_vid/test_vid.mp4"
-extension_list = ("*.mp4", "*.flv")
 
 
 def allowed_file(filename):
@@ -67,12 +65,17 @@ def upload_file():
                     filename + '_' + current_time + ".mp4")
                 f.save(os.path.join(app.config['UPLOAD_FOLDER'], filename_new))
 
-                video_path = ("uploaded_vid/" + filename_new)
+                video_path = (UPLOAD_FOLDER + "/" + filename_new)
                 print(video_path)
+
+                audio_emotion_detection = audio_slice.get_emotion(video_path)
+                print(audio_emotion_detection)
 
                 return jsonify({
                     "Message": "Video Saved",
-                "Video_Filename": video_path})
+                    "Video_Filename": video_path,
+                    "Predicted_Audio_Emotion": audio_emotion_detection
+                })
             else:
                 return jsonify({'Error': 'Unsupported file format. Supports only .mp4 format'}), 400
         except BadRequestKeyError:
