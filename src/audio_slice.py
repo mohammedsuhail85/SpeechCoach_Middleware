@@ -2,11 +2,12 @@ import os
 import glob
 from pydub import AudioSegment
 import requests
+from flask import jsonify
 
 FILE_PATH = "/home/suhail/Desktop/SpeechEmotionAnalyzer/temp/"
 
 
-def get_emotion(file_path):
+def get_emotion(file_path, session):
     try:
         # sound = AudioSegment.from_file_using_temporary_files
         # ("/home/suhail/Desktop/SpeechEmotionAnalyzer/test_vid.wav")
@@ -34,7 +35,7 @@ def get_emotion(file_path):
 
         print("saved")
 
-        url_emotion = "http://127.0.0.1:5000/audio/getemotion"
+        url_emotion = "http://127.0.0.1:5000/audio/"+session+"/getemotion"
 
         response_list = []
 
@@ -55,5 +56,9 @@ def get_emotion(file_path):
         print(response_list)
         return response_list
 
-    except Exception as ex:
-        ex.with_traceback()
+    except ConnectionRefusedError:
+        return jsonify({
+            "Error": "Speech Emotion Component Connection Refused"
+        })
+    # except Exception as ex:
+    #     ex.with_traceback()

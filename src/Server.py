@@ -4,13 +4,17 @@ from werkzeug import secure_filename
 import os
 import datetime
 import requests
+import threading
 
 from werkzeug.exceptions import BadRequestKeyError
-
-import audio_slice
+import MakeRequest
+import warnings
+warnings.filterwarnings('ignore')
 
 UPLOAD_FOLDER = '/home/suhail/Desktop/SpeechCoach_Middleware/uploaded_vid'
-ALLOWED_EXTENTIONS = ['mp4']
+# UPLOAD_FOLDER = os.environ["UPLOAD_FOLDER"] if "UPLOAD_FOLDER" in os.environ else "./uploaded_vid"
+PORT = 7000
+ALLOWED_EXTENTIONS = ['mp4', 'wav']
 
 app = Flask(__name__)
 api = Api(app)
@@ -50,8 +54,8 @@ def get_emotion_predicted(audio_path):
             })
 
 
-@app.route('/video/save', methods=['POST'])
-def upload_file():
+@app.route('/api/v1/video/<session>/save', methods=['POST'])
+def upload_file(session):
     if request.method == 'POST':
         print('request created')
         try:
@@ -68,27 +72,46 @@ def upload_file():
                 video_path = (UPLOAD_FOLDER + "/" + filename_new)
                 print(video_path)
 
-                audio_emotion_detection = audio_slice.get_emotion(video_path)
-                print(audio_emotion_detection)
+                voice_emotion = threading.Thread(target=MakeRequest.start_voice_emotion, args=(session, video_path))
+                voice_emotion.start()
+
+                transcript = threading.Thread(target=MakeRequest.start_transcript, args=(session, video_path))
+                transcript.start()
+
+                face_analysis = threading.Thread(target=MakeRequest.start_face, args=(session, video_path))
+                face_analysis.start()
+
+                gesture = threading.Thread(target=MakeRequest.start_gesture, args=(session, video_path))
+                gesture.start()
 
                 return jsonify({
-                    "Message": "Video Saved",
-                    "Video_Filename": video_path,
-                    "Predicted_Audio_Emotion": audio_emotion_detection
+                    "Session Id": session,
+                    "Status": "Video Saved and Process Started",
                 })
+
             else:
                 return jsonify({'Error': 'Unsupported file format. Supports only .mp4 format'}), 400
         except BadRequestKeyError:
             return jsonify({'Error': "Missing Video file, Required : form-data with .mp4 and "
                                      "key name 'file'"}), 400
         except Exception as ex:
-            ex.with_traceback()
-            return jsonify({'Error': "System Error"}), 409
+            # ex.with_traceback()
+            return jsonify({
+                'Error': str(ex)
+            }), 409
+
+
+@app.route('/audio/test', methods=['GET', 'POST'])
+def test_api():
+    if request.method == 'GET':
+        return jsonify({
+            "Message": "Success"
+        })
 
 
 if __name__ == '__main__':
     try:
-        app.run(debug=True, port=7000)
+        app.run(debug=True, port=PORT,host="0.0.0.0")
 
     except Exception as e:
         e.with_traceback()
