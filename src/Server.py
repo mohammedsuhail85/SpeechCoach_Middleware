@@ -5,13 +5,19 @@ import os
 import datetime
 import requests
 import threading
+from pathlib import Path
 
 from werkzeug.exceptions import BadRequestKeyError
 import MakeRequest
 import warnings
 warnings.filterwarnings('ignore')
 
-UPLOAD_FOLDER = '/home/suhail/Desktop/SpeechCoach_Middleware/uploaded_vid'
+UPLOAD_FOLDER = Path('../uploaded_vid')
+
+if not UPLOAD_FOLDER.exists():
+    print("File not exists: Creating Folder at :" + str(UPLOAD_FOLDER.name))
+    UPLOAD_FOLDER.mkdir(mode=0o777, parents=False, exist_ok=False)
+
 # UPLOAD_FOLDER = os.environ["UPLOAD_FOLDER"] if "UPLOAD_FOLDER" in os.environ else "./uploaded_vid"
 PORT = 7000
 ALLOWED_EXTENTIONS = ['mp4', 'wav']
@@ -69,7 +75,7 @@ def upload_file(session):
                     filename + '_' + current_time + ".mp4")
                 f.save(os.path.join(app.config['UPLOAD_FOLDER'], filename_new))
 
-                video_path = (UPLOAD_FOLDER + "/" + filename_new)
+                video_path = (str(UPLOAD_FOLDER.name) + "/" + filename_new)
                 print(video_path)
 
                 voice_emotion = threading.Thread(target=MakeRequest.start_voice_emotion, args=(session, video_path))
@@ -95,7 +101,7 @@ def upload_file(session):
             return jsonify({'Error': "Missing Video file, Required : form-data with .mp4 and "
                                      "key name 'file'"}), 400
         except Exception as ex:
-            # ex.with_traceback()
+            ex.with_traceback()
             return jsonify({
                 'Error': str(ex)
             }), 409
